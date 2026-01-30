@@ -1,0 +1,94 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: diy-example
+spec:
+  params:
+  - name: alertname
+    type: string
+  - name: namespace
+    type: string
+  - name: summary
+    type: string
+  tasks:
+  - name: diy-example
+    taskRef:
+      name: echo-alert
+    params:
+    - name: alertname
+      value: "$(params.alertname)"
+    - name: namespace
+      value: "$(params.namespace)"
+    - name: summary
+      value: "$(params.summary)"
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: diy-example
+spec:
+  params:
+  - name: alertname
+    value: "$(body.alerts[0].labels.alertname)"
+  - name: namespace
+    value: "$(body.alerts[0].labels.namespace)"
+  - name: summary
+    value: "$(body.alerts[0].annotations.summary)"
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: diy-example
+spec:
+  params:
+  - name: alertname
+  - name: namespace
+  - name: summary
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1
+    kind: PipelineRun
+    metadata:
+      generateName: diy-example-
+    spec:
+      pipelineRef:
+        name: diy-example
+      params:
+      - name: alertname
+        value: "$(tt.params.alertname)"
+      - name: namespace
+        value: "$(tt.params.namespace)"
+      - name: summary
+        value: "$(tt.params.summary)"
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: diy-example
+spec:
+  serviceAccountName: pipeline
+  bindings:
+  - kind: TriggerBinding
+    ref: diy-example
+  interceptors:
+  - params:
+    - name: "filter"
+      value: "body.alerts.exists(a, a.labels.alertname == 'Watchdog')"
+    ref:
+      kind: ClusterInterceptor
+      name: cel
+  template:
+    ref: diy-example
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: cluster-alerts
+  namespace: event-handler
+spec:
+  serviceAccountName: event-handler-admin
+  triggers:
+  - triggerRef: diy-example
+# status:
+#   address:
+#     url: 'http://el-cluster-alerts.event-handler.svc.cluster.local:8080'
