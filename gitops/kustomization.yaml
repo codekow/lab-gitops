@@ -5,5 +5,8 @@ components:
   - branding
 
 resources:
+  - instance/alerts
+  - instance/diag
+  - instance/metallb
   - machine-config
   - operators
