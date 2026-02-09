@@ -21,7 +21,7 @@ spec:
 
             echo "
             GIT_REPO=https://github.com/codekow/lab-gitops
-            GIT_PATH=lab-gitops
+            GIT_PATH=lab_gitops
 
             [ -e ~/\${GIT_PATH} ] || git clone \${GIT_REPO} ~/\${GIT_PATH}
             [ -e ~/\${GIT_PATH} ] && cd ~/\${GIT_PATH}
